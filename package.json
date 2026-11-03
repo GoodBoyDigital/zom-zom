@@ -7,7 +7,8 @@
     "start": "npm run dev",
     "build": "npm run lint && tsc && vite build",
     "lint": "eslint .",
-    "dev": "vite"
+    "dev": "vite",
+    "build:embed": "vite build --config vite.embed.config.ts && node scripts/build-embed.mjs"
   },
   "dependencies": {
     "@esotericsoftware/spine-pixi-v8": "^4.2.74",

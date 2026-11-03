@@ -26,3 +26,4 @@ dist-ssr
 public/assets
 .assetpack
 src/manifest.json
+dist-embed
