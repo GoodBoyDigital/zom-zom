@@ -94,7 +94,7 @@ export class GameTextures {
         this.bakeCentered(this.drawZombie(def.skin, cloth, false), 26),
       );
       corpses.push(
-        this.bakeCentered(this.drawZombie(def.skin, cloth, true), 30),
+        this.bakeCentered(this.drawZombie(def.skin, cloth, true), 34),
       );
     }
     const flash = this.bakeCentered(
@@ -104,25 +104,47 @@ export class GameTextures {
     return { bodies, flash, corpses };
   }
 
-  /** A zombie seen from above, facing +x. Corpses lie with arms flung out. */
+  /** A zombie seen from above, facing +x. Corpses lie spread-eagle, head towards +x. */
   private drawZombie(skin: number, cloth: number, dead: boolean): Graphics {
     const g = new Graphics();
-    const dark = dead ? 0.72 : 1;
-    const s = shade(skin, dark);
-    const c = shade(cloth, dark);
     if (dead) {
-      g.roundRect(-6, -22, 8, 16, 4).fill(s); // arm flung up
-      g.roundRect(-2, 8, 14, 7, 3.5).fill(s); // arm flung down-forward
-      g.ellipse(-12, -5, 6, 4).fill(shade(0x2a2a2a, dark)); // legs
-      g.ellipse(-12, 6, 6, 4).fill(shade(0x2a2a2a, dark));
-    } else {
-      g.roundRect(0, -13, 18, 6, 3).fill(s); // arms reaching forward
-      g.roundRect(0, 7, 16, 6, 3).fill(s);
+      const s = shade(skin, 0.85);
+      const c = shade(cloth, 0.85);
+      const pants = 0x2c2a33;
+      const outline = 0x0d120a;
+      const limbs: [number, number, number, number, number, number][] = [
+        // x0, y0, x1, y1, width, color
+        [-6, -5, -24, -15, 7, pants], // legs
+        [-6, 5, -23, 14, 7, pants],
+        [3, -9, 9, -24, 5.5, s], // arms flung out
+        [3, 9, 17, 19, 5.5, s],
+      ];
+      // Dark silhouette first so the body reads on top of gore.
+      for (const [x0, y0, x1, y1, w] of limbs) {
+        g.moveTo(x0, y0)
+          .lineTo(x1, y1)
+          .stroke({ width: w + 3, color: outline, cap: "round" });
+      }
+      g.ellipse(0, 0, 11.5, 14.5).fill(outline);
+      g.circle(14, -3, 8.5).fill(outline);
+      for (const [x0, y0, x1, y1, w, col] of limbs) {
+        g.moveTo(x0, y0)
+          .lineTo(x1, y1)
+          .stroke({ width: w, color: col, cap: "round" });
+      }
+      g.ellipse(0, 0, 10, 13).fill(c); // torso
+      g.ellipse(-2, 3, 4, 3).fill(shade(cloth, 0.55)); // wound
+      g.circle(14, -3, 7).fill(s); // head
+      g.circle(16, -5, 1.6).fill(0x1a1a1a); // eye sockets
+      g.circle(16, -0.5, 1.6).fill(0x1a1a1a);
+      return g;
     }
-    g.ellipse(0, 0, 9, 13).fill(c); // torso
-    g.ellipse(-2, -4, 3, 3).fill(shade(cloth, dark * 0.75)); // grime
-    g.circle(dead ? 10 : 6, dead ? -2 : 0, 7).fill(s); // head
-    g.circle(dead ? 12 : 8, dead ? -4 : -2, 2).fill(shade(skin, dark * 0.6));
+    g.roundRect(0, -13, 18, 6, 3).fill(skin); // arms reaching forward
+    g.roundRect(0, 7, 16, 6, 3).fill(skin);
+    g.ellipse(0, 0, 9, 13).fill(cloth); // torso
+    g.ellipse(-2, -4, 3, 3).fill(shade(cloth, 0.75)); // grime
+    g.circle(6, 0, 7).fill(skin); // head
+    g.circle(8, -2, 2).fill(shade(skin, 0.6));
     return g;
   }
 

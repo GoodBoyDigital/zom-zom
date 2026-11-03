@@ -5,7 +5,7 @@ import { damp, rand } from "../core/math";
 import type { Floor } from "./Floor";
 import type { GameTextures } from "./Textures";
 
-type ParticleKind = "spark" | "gib" | "casing";
+type ParticleKind = "spark" | "gib" | "casing" | "corpse";
 
 interface Particle {
   sprite: Sprite;
@@ -19,6 +19,8 @@ interface Particle {
   /** Bake into the floor when it comes to rest. */
   stampOnEnd: boolean;
   baseScale: number;
+  /** Runs right after the particle is stamped (e.g. gore that must land on top). */
+  onLand?: () => void;
 }
 
 interface Tracer {
@@ -220,6 +222,38 @@ export class Effects {
     p.spin = rand(-30, 30);
   }
 
+  /**
+   * A dead zombie topples in the shot direction, then its splayed body is stamped
+   * into the floor. onLand runs straight after, so its gore goes on top of the body.
+   */
+  public corpseFall(
+    texture: Texture,
+    x: number,
+    y: number,
+    rotation: number,
+    scale: number,
+    vx: number,
+    vy: number,
+    onLand?: () => void,
+  ) {
+    const p = this.spawn(
+      "corpse",
+      texture,
+      x,
+      y,
+      vx,
+      vy,
+      0.28,
+      0xffffff,
+      scale,
+      9,
+      true,
+    );
+    p.sprite.rotation = rotation;
+    p.spin = rand(-4, 4);
+    p.onLand = onLand;
+  }
+
   public update(dt: number) {
     // Particles.
     for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -234,6 +268,12 @@ export class Effects {
         p.sprite.rotation = Math.atan2(p.vy, p.vx);
         p.sprite.alpha = k;
         p.sprite.scale.set(p.baseScale * (0.5 + k), p.baseScale);
+      } else if (p.kind === "corpse") {
+        // Pops up slightly as it falls, settles to its real size when it lands.
+        p.sprite.rotation += p.spin * dt;
+        p.sprite.scale.set(
+          p.baseScale * (1 + 0.18 * Math.sin(Math.PI * (1 - k))),
+        );
       } else {
         p.sprite.rotation += p.spin * dt;
         p.spin = damp(p.spin, 6, dt);
@@ -246,10 +286,11 @@ export class Effects {
             s.x,
             s.y,
             s.rotation,
-            s.scale.x,
+            p.kind === "corpse" ? p.baseScale : s.scale.x,
             s.tint,
             p.kind === "gib" ? 0.85 : 1,
           );
+          p.onLand?.();
         }
         this.release(p.sprite);
         this.particles[i] = this.particles[this.particles.length - 1];

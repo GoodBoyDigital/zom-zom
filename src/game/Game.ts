@@ -303,39 +303,51 @@ export class Game {
     this.fx.impactSparks(hx, hy, dx, dy, 3, 0xd8ff9a);
     this.fx.impactFlash(hx, hy, 0xc8ff80, 0.45);
     this.sfx.hit();
-    if (z.hp <= 0) this.killZombie(z, dx, dy);
+    if (z.hp <= 0) this.killZombie(z, dx, dy, w);
   }
 
-  private killZombie(z: Zombie, dx: number, dy: number) {
+  private killZombie(z: Zombie, dx: number, dy: number, w: WeaponDef) {
     const angle = Math.atan2(dy, dx);
     const textures = this.tex.zombies.get(z.def.id)!;
-    // Big pool first, then the body on top of it, then a fresh spray. All baked into the floor.
+    const blood = z.def.blood;
+    const x = z.x;
+    const y = z.y;
+    // Stamp order: 1) the gore pool now, 2) the body when it lands, 3) fresh gore on top of it.
+    // Gore from later hits and kills keeps landing on top, so bodies pile up under the mess.
     this.floor.stamp(
       this.pickSplat(),
-      z.x + dx * 14,
-      z.y + dy * 14,
+      x + dx * 14,
+      y + dy * 14,
       angle,
       rand(1.1, 1.6),
       0x2f6e12,
       0.9,
     );
-    this.floor.stamp(
+    const push = Math.min(260, w.knockback * 0.5) / z.def.mass;
+    this.fx.corpseFall(
       textures.corpses[z.variant],
-      z.x + dx * 8,
-      z.y + dy * 8,
-      angle + rand(-0.5, 0.5),
+      x,
+      y,
+      angle + rand(-0.6, 0.6),
       z.radius / z.def.radius,
+      dx * push,
+      dy * push,
+      () => {
+        const cx = x + dx * push * 0.1;
+        const cy = y + dy * push * 0.1;
+        this.floor.stamp(
+          this.pickSplat(),
+          cx + dx * 10,
+          cy + dy * 10,
+          angle,
+          rand(0.45, 0.7),
+          0x8cff3a,
+          0.75,
+        );
+        this.fx.gore(cx, cy, dx, dy, 8, blood);
+      },
     );
-    this.floor.stamp(
-      this.pickSplat(),
-      z.x + dx * 26,
-      z.y + dy * 26,
-      angle,
-      rand(0.5, 0.8),
-      0x8cff3a,
-      0.8,
-    );
-    this.fx.gore(z.x, z.y, dx, dy, 14, z.def.blood);
+    this.fx.gore(x, y, dx, dy, 6, blood);
     this.fx.addShake(0.05);
     this.sfx.splat();
     this.zombies.kill(z);
@@ -356,7 +368,8 @@ export class Game {
     const d = Math.hypot(dx, dy) || 1;
     p.vx += (dx / d) * 120;
     p.vy += (dy / d) * 120;
-    this.fx.addShake(0.25);
+    // Subtle on purpose: bites from a crowd stack up fast.
+    this.fx.addShake(0.04);
     this.sfx.hurt();
     if (p.hp <= 0) {
       p.hp = 0;
@@ -364,7 +377,7 @@ export class Game {
       this.state = "dead";
       this.deadTime = 0;
       this.input.fireHeld = false;
-      this.fx.addShake(0.8);
+      this.fx.addShake(0.3);
       // The player leaves a stain too.
       this.floor.stamp(
         this.pickSplat(),

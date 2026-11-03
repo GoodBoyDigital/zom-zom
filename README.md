@@ -1,4 +1,4 @@
-# Zom Zoms
+# Zom Zom
 
 Top-down twin-stick zombie swarm shooter prototype. PixiJS v8, started from the
 `create-pixi.js` **creation-web** template (Vite + TypeScript + AssetPack).
