@@ -11,6 +11,8 @@ export interface ZombieDef {
   health: number;
   /** Body radius for collisions and hit tests. */
   radius: number;
+  /** Horizontal art stretch; lets a large zombie read as broad rather than tall. */
+  bodyWidth: number;
   /** Higher mass = less knockback. 1 is the baseline. */
   mass: number;
   /** Damage per bite on the player. */
@@ -34,12 +36,29 @@ export const ZOMBIES = {
     speedVariance: 0.35,
     health: 3,
     radius: 14,
+    bodyWidth: 1,
     mass: 1,
     biteDamage: 7,
     biteInterval: 0.7,
     skin: 0x8fae6a,
     clothes: [0x4b5a6e, 0x6e4b4b, 0x5c5a3e, 0x3e5c4f, 0x5a4a6a],
     blood: 0x7dff2a,
+    behaviour: "shamble",
+  },
+  /** A broad, slow damage sponge that starts joining the horde after the opening. */
+  brute: {
+    id: "brute",
+    speed: 42,
+    speedVariance: 0.16,
+    health: 7,
+    radius: 25,
+    bodyWidth: 1.35,
+    mass: 4,
+    biteDamage: 13,
+    biteInterval: 1.05,
+    skin: 0x9aac67,
+    clothes: [0x5d4737, 0x53405e, 0x4f5435],
+    blood: 0x93d93e,
     behaviour: "shamble",
   },
 } satisfies Record<string, ZombieDef>;
