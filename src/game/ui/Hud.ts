@@ -4,7 +4,7 @@ import type { GameTextures } from "../fx/Textures";
 
 const FONT = "Arial Black, Arial, sans-serif";
 
-/** Screen-space overlay: health, counters, crosshair, hurt flash and game over. */
+/** Screen-space overlay: health, counters, crosshair and hurt flash. */
 export class Hud {
   public readonly view = new Container();
   /** Text and bars, scaled with the screen so small embeds stay readable. */
@@ -20,9 +20,6 @@ export class Hud {
   private readonly reloadRing = new Graphics();
   private readonly hint: Text;
   private readonly crosshair = new Graphics();
-  private readonly gameOver = new Container();
-  private readonly gameOverTitle: Text;
-  private readonly gameOverSub: Text;
   private hintTime = 0;
 
   constructor(tex: GameTextures) {
@@ -96,35 +93,6 @@ export class Hud {
       .circle(0, 0, 1.5)
       .fill(0xff4040);
 
-    const shade = new Graphics()
-      .rect(-2000, -2000, 4000, 4000)
-      .fill({ color: 0x000000, alpha: 0.55 });
-    this.gameOverTitle = new Text({
-      text: "YOU GOT EATEN",
-      style: {
-        fontFamily: FONT,
-        fontSize: 64,
-        fill: 0xff4a4a,
-        stroke: { color: 0x000000, width: 8 },
-      },
-    });
-    this.gameOverTitle.anchor.set(0.5);
-    this.gameOverTitle.y = -30;
-    this.gameOverSub = new Text({
-      text: "",
-      style: {
-        fontFamily: FONT,
-        fontSize: 22,
-        fill: 0xffffff,
-        stroke: { color: 0x000000, width: 4 },
-        align: "center",
-      },
-    });
-    this.gameOverSub.anchor.set(0.5, 0);
-    this.gameOverSub.y = 20;
-    this.gameOver.addChild(shade, this.gameOverTitle, this.gameOverSub);
-    this.gameOver.visible = false;
-
     this.ui.addChild(
       this.hpBar,
       this.kills,
@@ -133,7 +101,6 @@ export class Hud {
       this.weapon,
       this.ammo,
       this.hint,
-      this.gameOver,
     );
     this.view.addChild(
       this.vignette,
@@ -147,7 +114,6 @@ export class Hud {
   public reset() {
     this.hintTime = 0;
     this.hint.alpha = 1;
-    this.gameOver.visible = false;
   }
 
   public resize(w: number, h: number) {
@@ -163,7 +129,6 @@ export class Hud {
     this.ammoBar.position.set(20, h - 18);
     this.weapon.position.set(20, h - 62);
     this.hint.position.set(w / 2, h - 16);
-    this.gameOver.position.set(w / 2, h / 2);
   }
 
   public update(
@@ -258,14 +223,5 @@ export class Hud {
     } else {
       g.roundRect(0, 0, (W * s.mag) / s.magazine, 6, 2).fill(s.weaponColor);
     }
-  }
-
-  public showGameOver(kills: number, time: number) {
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60)
-      .toString()
-      .padStart(2, "0");
-    this.gameOverSub.text = `${kills} zombies put down in ${mins}:${secs}\nclick or press R to go again`;
-    this.gameOver.visible = true;
   }
 }

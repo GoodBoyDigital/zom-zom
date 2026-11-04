@@ -16,5 +16,7 @@ export default defineConfig({
   },
   define: {
     APP_VERSION: JSON.stringify(process.env.npm_package_version),
+    // Library mode keeps `process.env.NODE_ENV` as-is; motion (menu tweens) reads it.
+    "process.env.NODE_ENV": JSON.stringify("production"),
   },
 });
