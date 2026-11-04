@@ -12,6 +12,8 @@ export class Spawner {
   public time = 0;
   private hordeTimer = 0;
   private trickleTimer = 0;
+  /** Guarantees that the first small group visibly introduces the new enemy. */
+  private openingBrutePending = true;
 
   constructor(private readonly zombies: ZombieSystem) {}
 
@@ -20,6 +22,7 @@ export class Spawner {
     // Let the player get oriented before the first small group reaches a gate.
     this.hordeTimer = 1.6;
     this.trickleTimer = 2.8;
+    this.openingBrutePending = true;
   }
 
   /** A compact readout for UI/debugging: a new threat band every 30 seconds. */
@@ -34,6 +37,10 @@ export class Spawner {
 
   /** Which zombie kind to spawn. Brutes arrive after the opening and grow more common. */
   private pickDef(): ZombieDef {
+    if (this.openingBrutePending) {
+      this.openingBrutePending = false;
+      return ZOMBIES.brute;
+    }
     if (this.time < 35) return ZOMBIES.walker;
     // 8% at the first appearance, gradually reaching a one-in-three late-game mix.
     const bruteChance = Math.min(0.34, 0.08 + (this.time - 35) * 0.0018);

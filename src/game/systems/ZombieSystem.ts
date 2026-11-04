@@ -38,6 +38,10 @@ export class ZombieSystem {
     return this.list.length;
   }
 
+  public countKind(id: string) {
+    return this.list.reduce((count, z) => count + Number(z.def.id === id), 0);
+  }
+
   public reset() {
     for (const z of this.list) this.release(z);
     this.list.length = 0;

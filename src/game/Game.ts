@@ -478,6 +478,7 @@ export class Game {
       maxHp: this.player.maxHp,
       kills: this.kills,
       alive: this.zombies.count,
+      brutes: this.zombies.countKind("brute"),
       time: this.spawner.time,
       threatLevel: this.spawner.threatLevel,
       weapon: this.weapon.name,
