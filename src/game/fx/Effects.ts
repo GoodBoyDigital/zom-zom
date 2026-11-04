@@ -59,6 +59,9 @@ export class Effects {
   /** Directional camera nudge, decays back to zero. */
   public kickX = 0;
   public kickY = 0;
+  /** Power-up override for gunfire: tracer colour, width/life multipliers, muzzle sparks. */
+  public tracerBoost: { color: number; width: number; life: number } | null =
+    null;
 
   constructor(
     private readonly tex: GameTextures,
@@ -101,6 +104,12 @@ export class Effects {
     color: number,
     life: number,
   ) {
+    const b = this.tracerBoost;
+    if (b) {
+      color = b.color;
+      width *= b.width;
+      life *= b.life;
+    }
     this.tracers.push({ x0, y0, x1, y1, width, color, life, maxLife: life });
   }
 
@@ -120,7 +129,11 @@ export class Effects {
 
     const light = this.get(this.tex.glow, this.over, "add");
     light.position.set(x, y);
-    light.tint = 0xffc070;
+    light.tint = this.tracerBoost ? this.tracerBoost.color : 0xffc070;
+    if (this.tracerBoost) {
+      flash.tint = this.tracerBoost.color;
+      this.impactSparks(x, y, -Math.cos(angle), -Math.sin(angle), 3, 0xc8fbff);
+    }
     light.alpha = 0.35;
     light.scale.set(1.6 + power);
     this.flashes.push({

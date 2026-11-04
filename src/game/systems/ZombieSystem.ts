@@ -27,6 +27,10 @@ export class ZombieSystem {
 
   /** Called when a zombie bites the player. */
   public onBite?: (z: Zombie) => void;
+  /** Shield bubble radius around the player; 0 = no shield. Zombies can't get inside or bite. */
+  public shieldRadius = 0;
+  /** A zombie touched the shield. (nx, ny) points from the player to the zombie. */
+  public onShieldHit?: (z: Zombie, nx: number, ny: number) => void;
 
   constructor(private readonly tex: GameTextures) {}
 
@@ -147,7 +151,19 @@ export class ZombieSystem {
         z.y += (oy / d) * push;
       });
 
-      if (player.alive) {
+      if (player.alive && this.shieldRadius > 0) {
+        const px = z.x - player.x;
+        const py = z.y - player.y;
+        const minD = z.radius + this.shieldRadius;
+        const dSq = px * px + py * py;
+        if (dSq < minD * minD) {
+          const d = Math.sqrt(dSq) || 1;
+          // Hard wall: the bubble does not give, and nothing bites through it.
+          z.x += (px / d) * (minD - d);
+          z.y += (py / d) * (minD - d);
+          this.onShieldHit?.(z, px / d, py / d);
+        }
+      } else if (player.alive) {
         const px = z.x - player.x;
         const py = z.y - player.y;
         const minD = z.radius + player.radius;

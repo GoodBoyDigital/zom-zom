@@ -13,6 +13,7 @@ import type { Zombie } from "./entities/Zombie";
 import { Effects } from "./fx/Effects";
 import { Floor } from "./fx/Floor";
 import { GameTextures } from "./fx/Textures";
+import { PowerUpSystem } from "./powerups/PowerUpSystem";
 import { Spawner } from "./systems/Spawner";
 import { ZombieSystem } from "./systems/ZombieSystem";
 import { Hud } from "./ui/Hud";
@@ -35,6 +36,7 @@ export class Game {
   public readonly spawner: Spawner;
   public readonly hud: Hud;
   public readonly sfx = new Sfx();
+  public readonly powerUps: PowerUpSystem;
 
   public weapon: WeaponDef = WEAPONS.rifle;
   public kills = 0;
@@ -70,17 +72,27 @@ export class Game {
     this.player = new Player(this.tex);
     this.spawner = new Spawner(this.zombies);
     this.hud = new Hud(this.tex);
+    this.powerUps = new PowerUpSystem(this);
 
     this.world.addChild(
       this.floor.view,
       this.fx.under,
       this.zombies.view,
+      this.powerUps.belowPlayer,
       this.player.view,
+      this.powerUps.abovePlayer,
       this.fx.over,
     );
-    this.view.addChild(this.world, this.hud.view);
+    this.view.addChild(
+      this.world,
+      this.powerUps.overlay,
+      this.hud.view,
+      this.powerUps.hud.view,
+    );
 
     this.zombies.onBite = (z) => this.onBite(z);
+    this.zombies.onShieldHit = (z, nx, ny) =>
+      this.powerUps.shield.hit(z, nx, ny);
     canvas.addEventListener("pointerdown", this.unlockAudio);
     window.addEventListener("keydown", this.unlockAudio);
     this.reset();
@@ -99,6 +111,7 @@ export class Game {
     this.zombies.reset();
     this.spawner.reset();
     this.hud.reset();
+    this.powerUps.reset();
     this.player.reset(ARENA.width / 2, ARENA.height / 2);
     this.kills = 0;
     this.shotsFired = 0;
@@ -120,6 +133,7 @@ export class Game {
     this.baseX = w / 2 - (ARENA.width / 2) * this.fitScale;
     this.baseY = h / 2 - (ARENA.height / 2) * this.fitScale;
     this.hud.resize(w, h);
+    this.powerUps.resize(w, h);
   }
 
   /** Called every rendered frame with real elapsed seconds. */
@@ -143,6 +157,10 @@ export class Game {
     for (let i = 0; i < WEAPON_ORDER.length; i++) {
       if (input.wasPressed(`Digit${i + 1}`)) this.setWeapon(WEAPON_ORDER[i]);
     }
+    // Debug: 4 drops a TNT crate ahead of you, 5 shield, 6 turbo.
+    if (input.wasPressed("Digit4")) this.powerUps.dropDebugCrate();
+    if (input.wasPressed("Digit5")) this.powerUps.activate("shield");
+    if (input.wasPressed("Digit6")) this.powerUps.activate("turbo");
 
     if (this.state === "playing") {
       const move = input.moveAxis();
@@ -155,7 +173,8 @@ export class Game {
       if (input.fireHeld && this.fireCooldown <= 0) {
         this.fire();
         this.fireCooldown =
-          Math.max(this.fireCooldown, -dt) + 1 / this.weapon.fireRate;
+          Math.max(this.fireCooldown, -dt) +
+          1 / (this.weapon.fireRate * this.powerUps.fireRateMultiplier);
       }
       this.spawner.update(dt);
     } else {
@@ -175,6 +194,7 @@ export class Game {
     }
 
     this.zombies.update(dt, this.player);
+    this.powerUps.update(dt);
     this.fx.update(dt);
     input.consumePresses();
   }
@@ -306,7 +326,13 @@ export class Game {
     if (z.hp <= 0) this.killZombie(z, dx, dy, w);
   }
 
-  private killZombie(z: Zombie, dx: number, dy: number, w: WeaponDef) {
+  /** Kill with the usual corpse fall and gore. Only `knockback` is read from `w`. */
+  public killZombie(
+    z: Zombie,
+    dx: number,
+    dy: number,
+    w: Pick<WeaponDef, "knockback">,
+  ) {
     const angle = Math.atan2(dy, dx);
     const textures = this.tex.zombies.get(z.def.id)!;
     const blood = z.def.blood;
@@ -401,6 +427,7 @@ export class Game {
       this.baseX + off.x * this.fitScale,
       this.baseY + off.y * this.fitScale,
     );
+    this.powerUps.render(elapsed, this.fitScale);
 
     const rect = this.canvas.getBoundingClientRect();
     this.hud.update(elapsed, {

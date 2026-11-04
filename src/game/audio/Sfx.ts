@@ -108,4 +108,41 @@ export class Sfx {
     this.thump(0.18, 220, 70, 0.5);
     this.burst(0.12, 1800, 2, 0.25, "bandpass", 500);
   }
+
+  /** TNT: a long rumble under a sharp crack. */
+  public explosion() {
+    if (!this.ready("explosion", 120)) return;
+    this.burst(1.4, 4000, 0.6, 1.1, "lowpass", 50);
+    this.burst(0.25, 6000, 0.8, 0.8, "lowpass", 800);
+    this.thump(0.9, 110, 22, 1.2);
+  }
+
+  /** Picking up a power-up: a quick rising chirp. */
+  public powerUp() {
+    if (!this.ready("powerUp", 60)) return;
+    const ctx = this.ctx!;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(330, t);
+    osc.frequency.exponentialRampToValueAtTime(1320, t + 0.18);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    osc.connect(g).connect(this.master!);
+    osc.start(t);
+    osc.stop(t + 0.24);
+  }
+
+  /** A zombie bounces off the shield bubble. */
+  public shieldHit() {
+    if (!this.ready("shieldHit", 70)) return;
+    this.burst(0.09, 2400, 6, 0.22, "bandpass", 1200);
+  }
+
+  /** The shield runs out. */
+  public shieldDown() {
+    if (!this.ready("shieldDown", 100)) return;
+    this.burst(0.35, 3000, 2, 0.4, "bandpass", 300);
+  }
 }
