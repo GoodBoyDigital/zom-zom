@@ -14,7 +14,9 @@ import { Effects } from "./fx/Effects";
 import { Floor } from "./fx/Floor";
 import { GameTextures } from "./fx/Textures";
 import { PickupSystem, registerWeaponPickups } from "./pickups";
+import { registerPowerUpPickups } from "./powerups/pickupDefs";
 import { Loadout } from "./systems/Loadout";
+import { PowerUpSystem } from "./powerups/PowerUpSystem";
 import { Spawner } from "./systems/Spawner";
 import { ZombieSystem } from "./systems/ZombieSystem";
 import { DropTuner } from "./ui/DropTuner";
@@ -43,6 +45,7 @@ export class Game {
   /** The gun in hand and its ammo. */
   public readonly loadout = new Loadout();
   private readonly dropTuner: DropTuner;
+  public readonly powerUps: PowerUpSystem;
 
   /** The gun currently in hand. */
   public get weapon(): WeaponDef {
@@ -82,6 +85,7 @@ export class Game {
     this.spawner = new Spawner(this.zombies);
     this.hud = new Hud(this.tex);
     registerWeaponPickups();
+    registerPowerUpPickups();
     this.pickups = new PickupSystem(renderer, this.tex);
     this.pickups.onCollect = () => this.sfx.pickup();
     this.loadout.onReload = () => this.sfx.reload();
@@ -95,19 +99,29 @@ export class Game {
       this.sfx.reload();
     };
     this.dropTuner = new DropTuner(canvas.parentElement ?? document.body);
+    this.powerUps = new PowerUpSystem(this);
 
     this.world.addChild(
       this.floor.view,
       this.fx.under,
       this.zombies.view,
       this.pickups.view,
+      this.powerUps.belowPlayer,
       this.player.view,
+      this.powerUps.abovePlayer,
       this.fx.over,
       this.pickups.labels,
     );
-    this.view.addChild(this.world, this.hud.view);
+    this.view.addChild(
+      this.world,
+      this.powerUps.overlay,
+      this.hud.view,
+      this.powerUps.hud.view,
+    );
 
     this.zombies.onBite = (z) => this.onBite(z);
+    this.zombies.onShieldHit = (z, nx, ny) =>
+      this.powerUps.shield.hit(z, nx, ny);
     canvas.addEventListener("pointerdown", this.unlockAudio);
     window.addEventListener("keydown", this.unlockAudio);
     this.reset();
@@ -129,6 +143,7 @@ export class Game {
     this.hud.reset();
     this.pickups.reset();
     this.loadout.reset();
+    this.powerUps.reset();
     this.player.reset(ARENA.width / 2, ARENA.height / 2);
     this.kills = 0;
     this.shotsFired = 0;
@@ -150,6 +165,7 @@ export class Game {
     this.baseX = w / 2 - (ARENA.width / 2) * this.fitScale;
     this.baseY = h / 2 - (ARENA.height / 2) * this.fitScale;
     this.hud.resize(w, h);
+    this.powerUps.resize(w, h);
   }
 
   /** Called every rendered frame with real elapsed seconds. */
@@ -173,6 +189,10 @@ export class Game {
     for (let i = 0; i < WEAPON_ORDER.length; i++) {
       if (input.wasPressed(`Digit${i + 1}`)) this.setWeapon(WEAPON_ORDER[i]);
     }
+    // Debug: 6 drops a TNT crate ahead of you, 7 shield, 8 turbo.
+    if (input.wasPressed("Digit6")) this.powerUps.dropDebugCrate();
+    if (input.wasPressed("Digit7")) this.powerUps.activate("shield");
+    if (input.wasPressed("Digit8")) this.powerUps.activate("turbo");
 
     if (this.state === "playing") {
       const move = input.moveAxis();
@@ -187,7 +207,8 @@ export class Game {
       if (input.fireHeld && this.fireCooldown <= 0 && this.loadout.canFire()) {
         this.fire();
         this.fireCooldown =
-          Math.max(this.fireCooldown, -dt) + 1 / this.weapon.fireRate;
+          Math.max(this.fireCooldown, -dt) +
+          1 / (this.weapon.fireRate * this.powerUps.fireRateMultiplier);
         this.loadout.consume();
       }
       this.spawner.update(dt);
@@ -209,6 +230,7 @@ export class Game {
 
     this.zombies.update(dt, this.player);
     this.pickups.update(dt, this);
+    this.powerUps.update(dt);
     this.fx.update(dt);
     input.consumePresses();
   }
@@ -286,10 +308,13 @@ export class Game {
     p.vx -= Math.cos(baseAngle) * w.recoil;
     p.vy -= Math.sin(baseAngle) * w.recoil;
     this.fx.muzzleFlash(mx, my, baseAngle, power);
-    this.fx.addShake(w.shake);
+    // Faster fire (turbo) spreads the same shake and kick over more shots, so it
+    // shakes no harder per second than normal fire.
+    const feel = 1 / this.powerUps.fireRateMultiplier;
+    this.fx.addGunShake(w.shake * feel);
     this.fx.addKick(
-      -Math.cos(baseAngle) * w.cameraKick,
-      -Math.sin(baseAngle) * w.cameraKick,
+      -Math.cos(baseAngle) * w.cameraKick * feel,
+      -Math.sin(baseAngle) * w.cameraKick * feel,
     );
     this.fx.casing(
       p.x + Math.cos(baseAngle) * 14,
@@ -341,7 +366,13 @@ export class Game {
     if (z.hp <= 0) this.killZombie(z, dx, dy, w);
   }
 
-  private killZombie(z: Zombie, dx: number, dy: number, w: WeaponDef) {
+  /** Kill with the usual corpse fall and gore. Only `knockback` is read from `w`. */
+  public killZombie(
+    z: Zombie,
+    dx: number,
+    dy: number,
+    w: Pick<WeaponDef, "knockback">,
+  ) {
     const angle = Math.atan2(dy, dx);
     const textures = this.tex.zombies.get(z.def.id)!;
     const blood = z.def.blood;
@@ -383,7 +414,7 @@ export class Game {
       },
     );
     this.fx.gore(x, y, dx, dy, 6, blood);
-    this.fx.addShake(0.05);
+    this.fx.addGunShake(0.05);
     this.sfx.splat();
     this.zombies.kill(z);
     this.kills++;
@@ -437,6 +468,7 @@ export class Game {
       this.baseX + off.x * this.fitScale,
       this.baseY + off.y * this.fitScale,
     );
+    this.powerUps.render(elapsed, this.fitScale);
 
     const rect = this.canvas.getBoundingClientRect();
     this.hud.update(elapsed, {

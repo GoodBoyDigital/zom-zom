@@ -41,6 +41,17 @@ interface Flash {
   baseScale: number;
 }
 
+/** Camera shake tuning. Shake offset is trauma squared times maxPx. */
+export const SHAKE = {
+  maxPx: 18,
+  /** Trauma drained per second for big one-off events. */
+  decay: 2.2,
+  /** Gunfire can never push its own shake past this (0.45 ≈ 3.6px). */
+  gunCap: 0.45,
+  /** Gunfire shake drains fast, so it settles as soon as you stop firing. */
+  gunDecay: 4,
+};
+
 /**
  * Short-lived visual effects. Nothing here affects gameplay.
  * Layers: `under` sits below the zombies (casings, gibs in flight), `over` is additive light on top.
@@ -54,11 +65,19 @@ export class Effects {
   private tracers: Tracer[] = [];
   private spritePool: Sprite[] = [];
 
-  /** Screen shake trauma, 0..1. Shake amount is trauma squared. */
+  /** Screen shake trauma from big one-off events (explosions, bites, death), 0..1. */
   public trauma = 0;
+  /**
+   * Shake from sustained gunfire and the kills it causes, kept apart from `trauma`
+   * so holding the trigger can never build up a big shake, and it settles fast.
+   */
+  public gunTrauma = 0;
   /** Directional camera nudge, decays back to zero. */
   public kickX = 0;
   public kickY = 0;
+  /** Power-up override for gunfire: tracer colour, width/life multipliers, muzzle sparks. */
+  public tracerBoost: { color: number; width: number; life: number } | null =
+    null;
 
   constructor(
     private readonly tex: GameTextures,
@@ -76,6 +95,7 @@ export class Effects {
     this.tracers.length = 0;
     this.tracerGfx.clear();
     this.trauma = 0;
+    this.gunTrauma = 0;
     this.kickX = this.kickY = 0;
   }
 
@@ -85,6 +105,12 @@ export class Effects {
 
   public addShake(amount: number) {
     this.trauma = Math.min(1, this.trauma + amount);
+  }
+
+  /** Gunfire shake: capped low so holding the trigger stays readable. */
+  public addGunShake(amount: number) {
+    if (this.gunTrauma >= SHAKE.gunCap) return;
+    this.gunTrauma = Math.min(SHAKE.gunCap, this.gunTrauma + amount);
   }
 
   public addKick(dx: number, dy: number) {
@@ -101,6 +127,12 @@ export class Effects {
     color: number,
     life: number,
   ) {
+    const b = this.tracerBoost;
+    if (b) {
+      color = b.color;
+      width *= b.width;
+      life *= b.life;
+    }
     this.tracers.push({ x0, y0, x1, y1, width, color, life, maxLife: life });
   }
 
@@ -120,7 +152,11 @@ export class Effects {
 
     const light = this.get(this.tex.glow, this.over, "add");
     light.position.set(x, y);
-    light.tint = 0xffc070;
+    light.tint = this.tracerBoost ? this.tracerBoost.color : 0xffc070;
+    if (this.tracerBoost) {
+      flash.tint = this.tracerBoost.color;
+      this.impactSparks(x, y, -Math.cos(angle), -Math.sin(angle), 3, 0xc8fbff);
+    }
     light.alpha = 0.35;
     light.scale.set(1.6 + power);
     this.flashes.push({
@@ -350,14 +386,17 @@ export class Effects {
         });
     }
     // Camera.
-    this.trauma = Math.max(0, this.trauma - dt * 1.6);
+    this.trauma = Math.max(0, this.trauma - dt * SHAKE.decay);
+    this.gunTrauma = Math.max(0, this.gunTrauma - dt * SHAKE.gunDecay);
     this.kickX = damp(this.kickX, 14, dt);
     this.kickY = damp(this.kickY, 14, dt);
   }
 
   /** Current camera offset from shake and kick, px. */
   public cameraOffset(out: { x: number; y: number }) {
-    const s = this.trauma * this.trauma * 18;
+    const s =
+      (this.trauma * this.trauma + this.gunTrauma * this.gunTrauma) *
+      SHAKE.maxPx;
     out.x = this.kickX + rand(-s, s);
     out.y = this.kickY + rand(-s, s);
     return out;

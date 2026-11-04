@@ -9,6 +9,7 @@ import type { DropTuning } from "../pickups/dropTuning";
 const SLIDERS: { key: keyof DropTuning; label: string }[] = [
   { key: "pistolGunChance", label: "Gun drop · pistol only" },
   { key: "gunChance", label: "Gun drop · holding a gun" },
+  { key: "powerUpChance", label: "Power-up drop" },
 ];
 
 /**

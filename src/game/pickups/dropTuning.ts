@@ -7,11 +7,14 @@ export interface DropTuning {
   gunChance: number;
   /** Chance a kill drops a gun while you only have the pistol. */
   pistolGunChance: number;
+  /** Chance a kill drops a power-up (TNT, shield, turbo). */
+  powerUpChance: number;
 }
 
 export const DROP_DEFAULTS: DropTuning = {
   gunChance: 0.03,
   pistolGunChance: 0.1,
+  powerUpChance: 0.025,
 };
 
 const KEY = "zom-zoms.drop-tuning";
