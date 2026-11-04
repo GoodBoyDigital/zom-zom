@@ -479,6 +479,7 @@ export class Game {
       kills: this.kills,
       alive: this.zombies.count,
       time: this.spawner.time,
+      threatLevel: this.spawner.threatLevel,
       weapon: this.weapon.name,
       weaponColor: this.weapon.color,
       mag: this.loadout.mag,

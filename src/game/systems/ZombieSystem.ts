@@ -61,7 +61,8 @@ export class ZombieSystem {
     z.y = y;
     z.kx = z.ky = 0;
     z.radius = def.radius * rand(0.92, 1.1);
-    z.view.scale.set(z.radius / def.radius);
+    const scale = z.radius / def.radius;
+    z.view.scale.set(scale * def.bodyWidth, scale);
     z.speed = def.speed * (1 + rand(-def.speedVariance, def.speedVariance));
     z.hp = def.health;
     z.alive = true;

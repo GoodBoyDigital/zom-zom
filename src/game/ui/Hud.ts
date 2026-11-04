@@ -139,6 +139,7 @@ export class Hud {
       kills: number;
       alive: number;
       time: number;
+      threatLevel: number;
       weapon: string;
       weaponColor: number;
       /** Rounds in the magazine / magazine size / rounds in reserve (Infinity = pistol). */
@@ -170,7 +171,7 @@ export class Hud {
     const secs = Math.floor(s.time % 60)
       .toString()
       .padStart(2, "0");
-    this.stats.text = `KILLS   ·   ${s.alive} SHAMBLING   ·   ${mins}:${secs}`;
+    this.stats.text = `KILLS   ·   ${s.alive} SHAMBLING   ·   THREAT ${s.threatLevel}   ·   ${mins}:${secs}`;
     this.weapon.text = s.weapon.toUpperCase();
     this.weapon.style.fill = s.weaponColor;
     this.drawAmmo(s);
