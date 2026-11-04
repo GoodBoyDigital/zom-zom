@@ -409,6 +409,7 @@ export class Game {
       kills: this.kills,
       alive: this.zombies.count,
       time: this.spawner.time,
+      threatLevel: this.spawner.threatLevel,
       weapon: this.weapon.name,
       hurt: this.player.hurt,
       mouseX: (this.input.mouseX * this.screenW) / (rect.width || 1),

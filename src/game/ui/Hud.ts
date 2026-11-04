@@ -156,6 +156,7 @@ export class Hud {
       kills: number;
       alive: number;
       time: number;
+      threatLevel: number;
       weapon: string;
       hurt: number;
       mouseX: number;
@@ -180,7 +181,7 @@ export class Hud {
     const secs = Math.floor(s.time % 60)
       .toString()
       .padStart(2, "0");
-    this.stats.text = `KILLS   ·   ${s.alive} SHAMBLING   ·   ${mins}:${secs}`;
+    this.stats.text = `KILLS   ·   ${s.alive} SHAMBLING   ·   THREAT ${s.threatLevel}   ·   ${mins}:${secs}`;
     this.weapon.text = s.weapon.toUpperCase();
     this.hurtOverlay.alpha = s.hurt * 0.9;
     this.hurtOverlay.visible = s.hurt > 0;
