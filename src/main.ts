@@ -1,6 +1,7 @@
+import { setFlowHost } from "./app/flow";
 import { setEngine } from "./app/getEngine";
-import { GameScreen } from "./app/screens/GameScreen";
 import { LoadScreen } from "./app/screens/LoadScreen";
+import { TitleScreen } from "./app/screens/TitleScreen";
 import { userSettings } from "./app/utils/userSettings";
 import { CreationEngine } from "./engine/engine";
 
@@ -19,7 +20,13 @@ setEngine(engine);
   });
 
   userSettings.init();
+  setFlowHost({
+    navigation: engine.navigation,
+    renderer: engine.renderer,
+    canvas: engine.canvas,
+  });
 
+  // Title -> Game, with pause and game-over menus as popups over the game.
   await engine.navigation.showScreen(LoadScreen);
-  await engine.navigation.showScreen(GameScreen);
+  await engine.navigation.showScreen(TitleScreen);
 })();

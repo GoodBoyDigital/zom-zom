@@ -1,19 +1,20 @@
 /**
  * Stand-alone entry: one self-contained HTML file with no network, no workers and no eval.
- * Used to share a playable build as a single file (e.g. inside chat). The full app
- * (src/main.ts) uses the template's engine, screens and asset pipeline instead.
+ * Used to share a playable build as a single file (e.g. inside chat). It runs the same
+ * title / pause / game-over flow as the full app (src/main.ts), on a bare Application
+ * with its own Navigation instead of the template engine and asset pipeline.
  */
 import "pixi.js/unsafe-eval";
 
 import { Application } from "pixi.js";
 
-import { Input } from "./game/core/Input";
-import { Game } from "./game/Game";
+import { setFlowHost } from "./app/flow";
+import { TitleScreen } from "./app/screens/TitleScreen";
+import type { CreationEngine } from "./engine/engine";
+import { Navigation } from "./engine/navigation/navigation";
 
 (async () => {
   const host = document.getElementById("game")!;
-  const overlay = document.getElementById("overlay")!;
-  const overlayText = document.getElementById("overlay-text")!;
 
   const app = new Application();
   await app.init({
@@ -24,37 +25,28 @@ import { Game } from "./game/Game";
     preference: "webgl",
   });
   host.appendChild(app.canvas);
-  app.canvas.style.cursor = "none";
   app.canvas.tabIndex = 0;
 
-  const input = new Input(app.canvas);
-  const game = new Game(app.renderer, input, app.canvas);
-  app.stage.addChild(game.view);
-  (window as unknown as { __zom: Game }).__zom = game;
+  // Navigation only needs stage + ticker; no screen here declares asset bundles.
+  const navigation = new Navigation();
+  navigation.init(app as unknown as CreationEngine);
+  setFlowHost({ navigation, renderer: app.renderer, canvas: app.canvas });
 
-  const onResize = () => game.resize(app.screen.width, app.screen.height);
+  const onResize = () => navigation.resize(app.screen.width, app.screen.height);
   app.renderer.on("resize", onResize);
   onResize();
 
-  // Start paused behind a "click to play" card; pause again whenever focus leaves.
-  game.paused = true;
-  const start = () => {
-    overlay.style.display = "none";
-    game.paused = false;
+  // The HTML card is only a loading placeholder now; the title screen takes over.
+  document.getElementById("overlay")?.remove();
+  app.canvas.addEventListener("pointerdown", () => {
     window.focus();
     app.canvas.focus();
-  };
-  overlay.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    game.sfx.unlock();
-    start();
-  });
-  window.addEventListener("blur", () => {
-    game.paused = true;
-    input.reset();
-    overlayText.textContent = "Paused · click to resume";
-    overlay.style.display = "flex";
   });
 
-  app.ticker.add((t) => game.frame(t.deltaMS / 1000));
+  // Switching tabs opens the pause menu (GameScreen also pauses on window blur).
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) navigation.blur();
+  });
+
+  await navigation.showScreen(TitleScreen);
 })();

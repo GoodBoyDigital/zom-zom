@@ -42,6 +42,8 @@ export class Game {
   public hitsLanded = 0;
   public state: "playing" | "dead" = "playing";
   public paused = false;
+  /** When true, R / Space / click restarts after death. Menus that handle restart turn it off. */
+  public autoRestart = true;
 
   private accumulator = 0;
   private fireCooldown = 0;
@@ -162,6 +164,7 @@ export class Game {
       this.player.update(dt, 0, 0);
       this.deadTime += dt;
       if (
+        this.autoRestart &&
         this.deadTime > 0.8 &&
         (input.wasPressed("KeyR") ||
           input.wasPressed("Space") ||
@@ -388,7 +391,6 @@ export class Game {
         0x6a0d0d,
         0.95,
       );
-      this.hud.showGameOver(this.kills, this.spawner.time);
     }
   }
 
