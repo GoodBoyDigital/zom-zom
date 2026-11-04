@@ -24,6 +24,9 @@ export class GameTextures {
   public glow!: Texture;
   public spark!: Texture;
   public casing!: Texture;
+  public dollar!: Texture;
+  public coin!: Texture;
+  public gem!: Texture;
   public vignette!: Texture;
   public shadow!: Texture;
 
@@ -66,6 +69,36 @@ export class GameTextures {
         .fill(0xd9a441)
         .rect(-3, -1.5, 2, 3)
         .fill(0xf5d27a),
+    );
+    this.dollar = this.bakeCentered(
+      new Graphics()
+        .roundRect(-10, -6, 20, 12, 2)
+        .fill(0x69c65a)
+        .roundRect(-8, -4, 16, 8, 1)
+        .stroke({ width: 1.5, color: 0xd9ffd1 })
+        .circle(0, 0, 2.5)
+        .fill(0xf5ffe9),
+      13,
+    );
+    this.coin = this.bakeCentered(
+      new Graphics()
+        .circle(0, 0, 9)
+        .fill(0xf3ba38)
+        .circle(0, 0, 6.5)
+        .stroke({ width: 2, color: 0xffef9c })
+        .circle(0, 0, 2.5)
+        .fill(0xffdf69),
+      12,
+    );
+    this.gem = this.bakeCentered(
+      new Graphics()
+        .poly([0, -11, 9, -3, 5, 10, -5, 10, -9, -3])
+        .fill(0x54d5ff)
+        .poly([0, -11, 0, 10, -9, -3])
+        .fill(0xa9efff)
+        .poly([0, -11, 9, -3, 0, 10])
+        .fill(0x168ecf),
+      13,
     );
     this.vignette = this.buildVignette();
   }

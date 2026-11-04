@@ -154,6 +154,7 @@ export class Hud {
       hp: number;
       maxHp: number;
       kills: number;
+      score: number;
       alive: number;
       time: number;
       weapon: string;
@@ -175,12 +176,12 @@ export class Hud {
       .roundRect(20, 20, w * k, 18, 4)
       .fill(k > 0.5 ? 0x6fdc4a : k > 0.25 ? 0xe8b23a : 0xe0413a);
 
-    this.kills.text = `${s.kills}`;
+    this.kills.text = `${s.score} pts`;
     const mins = Math.floor(s.time / 60);
     const secs = Math.floor(s.time % 60)
       .toString()
       .padStart(2, "0");
-    this.stats.text = `KILLS   ·   ${s.alive} SHAMBLING   ·   ${mins}:${secs}`;
+    this.stats.text = `KILLS ${s.kills}   ·   ${s.alive} SHAMBLING   ·   ${mins}:${secs}`;
     this.weapon.text = s.weapon.toUpperCase();
     this.hurtOverlay.alpha = s.hurt * 0.9;
     this.hurtOverlay.visible = s.hurt > 0;
