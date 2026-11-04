@@ -30,9 +30,42 @@ export interface WeaponDef {
   tracerColor: number;
   /** Tracer fade time, seconds. */
   tracerLife: number;
+  /** Rounds per magazine. One round = one trigger pull (all pellets). */
+  magazine: number;
+  /** Seconds to swap in a fresh magazine. */
+  reloadTime: number;
+  /** Total rounds you get when you pick this gun up. Infinity = never runs dry (the pistol). */
+  ammo: number;
+  /** Pickup / HUD accent colour. */
+  color: number;
+  /** Relative chance of this gun being the one that drops. 0 = never drops. */
+  dropWeight: number;
 }
 
 export const WEAPONS = {
+  pistol: {
+    id: "pistol",
+    name: "Pistol",
+    fireRate: 5,
+    pellets: 1,
+    spread: 0.06,
+    damage: 1,
+    pierce: 1,
+    range: 1600,
+    knockback: 220,
+    recoil: 30,
+    gunKick: 6,
+    shake: 0.1,
+    cameraKick: 3,
+    tracerWidth: 4,
+    tracerColor: 0xfff2b0,
+    tracerLife: 0.08,
+    magazine: 12,
+    reloadTime: 0.9,
+    ammo: Infinity,
+    color: 0xd0d0d0,
+    dropWeight: 0,
+  },
   rifle: {
     id: "rifle",
     name: "Rifle",
@@ -50,13 +83,18 @@ export const WEAPONS = {
     tracerWidth: 5,
     tracerColor: 0xfff2b0,
     tracerLife: 0.09,
+    magazine: 30,
+    reloadTime: 1.3,
+    ammo: 150,
+    color: 0xffd34a,
+    dropWeight: 4,
   },
   shotgun: {
     id: "shotgun",
     name: "Shotgun",
-    fireRate: 1.6,
-    pellets: 9,
-    spread: 0.42,
+    fireRate: 2.4,
+    pellets: 10,
+    spread: 0.5,
     damage: 1,
     pierce: 1,
     range: 520,
@@ -68,10 +106,38 @@ export const WEAPONS = {
     tracerWidth: 2.5,
     tracerColor: 0xffd27a,
     tracerLife: 0.09,
+    magazine: 4,
+    reloadTime: 1.8,
+    ammo: 28,
+    color: 0xff8a3a,
+    dropWeight: 4,
+  },
+  minigun: {
+    id: "minigun",
+    name: "Minigun",
+    fireRate: 30,
+    pellets: 1,
+    spread: 0.11,
+    damage: 1,
+    pierce: 1,
+    range: 1800,
+    knockback: 200,
+    recoil: 22,
+    gunKick: 4,
+    shake: 0.07,
+    cameraKick: 2,
+    tracerWidth: 3.5,
+    tracerColor: 0xffe27a,
+    tracerLife: 0.06,
+    magazine: 200,
+    reloadTime: 2.6,
+    ammo: 400,
+    color: 0x5ad6ff,
+    dropWeight: 3,
   },
   railgun: {
     id: "railgun",
-    name: "Railgun (pierces all)",
+    name: "Railgun",
     fireRate: 1.2,
     pellets: 1,
     spread: 0,
@@ -86,10 +152,24 @@ export const WEAPONS = {
     tracerWidth: 7,
     tracerColor: 0x8ae6ff,
     tracerLife: 0.22,
+    magazine: 5,
+    reloadTime: 1.6,
+    ammo: 20,
+    color: 0xb07aff,
+    dropWeight: 2,
   },
 } satisfies Record<string, WeaponDef>;
 
 export type WeaponId = keyof typeof WEAPONS;
 
-/** Order for the 1/2/3 debug hotkeys. The prototype starts with the rifle. */
-export const WEAPON_ORDER: WeaponId[] = ["rifle", "shotgun", "railgun"];
+/** You always fall back to this gun when a pickup runs dry. */
+export const DEFAULT_WEAPON: WeaponId = "pistol";
+
+/** Order for the number-key debug hotkeys (each gives the gun with a full pickup of ammo). */
+export const WEAPON_ORDER: WeaponId[] = [
+  "pistol",
+  "rifle",
+  "shotgun",
+  "minigun",
+  "railgun",
+];

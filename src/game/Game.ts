@@ -6,15 +6,18 @@ import { ARENA, FIXED_DT, MAX_STEPS_PER_FRAME } from "./config";
 import type { Input } from "./core/Input";
 import { rand, rayWallDistance } from "./core/math";
 import type { WeaponDef, WeaponId } from "./defs/weapons";
-import { WEAPON_ORDER, WEAPONS } from "./defs/weapons";
+import { WEAPON_ORDER } from "./defs/weapons";
 import { ZOMBIES } from "./defs/zombies";
 import { Player } from "./entities/Player";
 import type { Zombie } from "./entities/Zombie";
 import { Effects } from "./fx/Effects";
 import { Floor } from "./fx/Floor";
 import { GameTextures } from "./fx/Textures";
+import { PickupSystem, registerWeaponPickups } from "./pickups";
+import { Loadout } from "./systems/Loadout";
 import { Spawner } from "./systems/Spawner";
 import { ZombieSystem } from "./systems/ZombieSystem";
+import { DropTuner } from "./ui/DropTuner";
 import { Hud } from "./ui/Hud";
 
 /**
@@ -35,8 +38,16 @@ export class Game {
   public readonly spawner: Spawner;
   public readonly hud: Hud;
   public readonly sfx = new Sfx();
+  /** Everything lying on the floor waiting to be collected (guns, power-ups). */
+  public readonly pickups: PickupSystem;
+  /** The gun in hand and its ammo. */
+  public readonly loadout = new Loadout();
+  private readonly dropTuner: DropTuner;
 
-  public weapon: WeaponDef = WEAPONS.rifle;
+  /** The gun currently in hand. */
+  public get weapon(): WeaponDef {
+    return this.loadout.weapon;
+  }
   public kills = 0;
   public shotsFired = 0;
   public hitsLanded = 0;
@@ -70,13 +81,29 @@ export class Game {
     this.player = new Player(this.tex);
     this.spawner = new Spawner(this.zombies);
     this.hud = new Hud(this.tex);
+    registerWeaponPickups();
+    this.pickups = new PickupSystem(renderer, this.tex);
+    this.pickups.onCollect = () => this.sfx.pickup();
+    this.loadout.onReload = () => this.sfx.reload();
+    this.loadout.onEmpty = () => {
+      this.pickups.floatText(
+        this.player.x,
+        this.player.y,
+        "OUT OF AMMO",
+        0xff6a5a,
+      );
+      this.sfx.reload();
+    };
+    this.dropTuner = new DropTuner(canvas.parentElement ?? document.body);
 
     this.world.addChild(
       this.floor.view,
       this.fx.under,
       this.zombies.view,
+      this.pickups.view,
       this.player.view,
       this.fx.over,
+      this.pickups.labels,
     );
     this.view.addChild(this.world, this.hud.view);
 
@@ -89,6 +116,7 @@ export class Game {
   public destroy() {
     this.canvas.removeEventListener("pointerdown", this.unlockAudio);
     window.removeEventListener("keydown", this.unlockAudio);
+    this.dropTuner.destroy();
   }
 
   private unlockAudio = () => this.sfx.unlock();
@@ -99,6 +127,8 @@ export class Game {
     this.zombies.reset();
     this.spawner.reset();
     this.hud.reset();
+    this.pickups.reset();
+    this.loadout.reset();
     this.player.reset(ARENA.width / 2, ARENA.height / 2);
     this.kills = 0;
     this.shotsFired = 0;
@@ -151,11 +181,14 @@ export class Game {
         this.aimX - this.player.x,
       );
       this.player.update(dt, move.x, move.y);
+      this.loadout.update(dt);
+      if (input.wasPressed("KeyR")) this.loadout.startReload();
       this.fireCooldown -= dt;
-      if (input.fireHeld && this.fireCooldown <= 0) {
+      if (input.fireHeld && this.fireCooldown <= 0 && this.loadout.canFire()) {
         this.fire();
         this.fireCooldown =
           Math.max(this.fireCooldown, -dt) + 1 / this.weapon.fireRate;
+        this.loadout.consume();
       }
       this.spawner.update(dt);
     } else {
@@ -175,12 +208,14 @@ export class Game {
     }
 
     this.zombies.update(dt, this.player);
+    this.pickups.update(dt, this);
     this.fx.update(dt);
     input.consumePresses();
   }
 
-  public setWeapon(id: WeaponId) {
-    this.weapon = WEAPONS[id];
+  /** Put a gun in hand with a full pickup's worth of ammo (debug keys, QA). */
+  public setWeapon(id: WeaponId, rounds?: number) {
+    this.loadout.equip(id, rounds);
     this.fireCooldown = Math.min(this.fireCooldown, 0.1);
   }
 
@@ -352,6 +387,7 @@ export class Game {
     this.sfx.splat();
     this.zombies.kill(z);
     this.kills++;
+    this.pickups.rollDrops(this, x, y);
   }
 
   private pickSplat() {
@@ -410,6 +446,11 @@ export class Game {
       alive: this.zombies.count,
       time: this.spawner.time,
       weapon: this.weapon.name,
+      weaponColor: this.weapon.color,
+      mag: this.loadout.mag,
+      magazine: this.weapon.magazine,
+      reserve: this.loadout.reserve,
+      reload: this.loadout.reloading ? this.loadout.reloadProgress : -1,
       hurt: this.player.hurt,
       mouseX: (this.input.mouseX * this.screenW) / (rect.width || 1),
       mouseY: (this.input.mouseY * this.screenH) / (rect.height || 1),
