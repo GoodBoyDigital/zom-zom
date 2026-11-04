@@ -45,11 +45,11 @@ interface Flash {
 export const SHAKE = {
   maxPx: 18,
   /** Trauma drained per second for big one-off events. */
-  decay: 2.2,
-  /** Gunfire can never push its own shake past this (0.45 ≈ 3.6px). */
-  gunCap: 0.45,
-  /** Gunfire shake drains fast, so it settles as soon as you stop firing. */
-  gunDecay: 4,
+  decay: 1.6,
+  /** Gunfire can never push its own shake past this (0.38 ≈ 2.6px). */
+  gunCap: 0.38,
+  /** Gunfire shake drains from the cap in a quarter second once you stop firing. */
+  gunDecay: 1.5,
 };
 
 /**

@@ -66,6 +66,7 @@ export class GameScreen extends Container implements RunControls {
     // Fresh run every time this screen is shown.
     this._game.reset();
     this._game.paused = false;
+    this._game.dropTuner.visible = true;
     this.input.reset();
     this.addChild(this._game.view, this.fade);
     window.__zom = this._game;
@@ -83,6 +84,7 @@ export class GameScreen extends Container implements RunControls {
     window.removeEventListener("blur", this.onWindowBlur);
     setRunControls(null);
     this._game.paused = true;
+    this._game.dropTuner.visible = false;
     this.input.reset();
     this.removeChildren();
     flow().canvas.style.cursor = "default";

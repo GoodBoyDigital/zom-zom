@@ -93,6 +93,12 @@ export class DropTuner {
     this.refresh();
   }
 
+  /** Shown only while a run is on screen (hidden on the title). */
+  public set visible(v: boolean) {
+    if (!v) this.toggle(false);
+    this.root.style.display = v ? "flex" : "none";
+  }
+
   public get open() {
     return this.panel.style.display !== "none";
   }

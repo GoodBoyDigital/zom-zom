@@ -44,7 +44,7 @@ export class Game {
   public readonly pickups: PickupSystem;
   /** The gun in hand and its ammo. */
   public readonly loadout = new Loadout();
-  private readonly dropTuner: DropTuner;
+  public readonly dropTuner: DropTuner;
   public readonly powerUps: PowerUpSystem;
 
   /** The gun currently in hand. */
