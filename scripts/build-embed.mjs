@@ -26,7 +26,7 @@ const html = `<!doctype html>
   <div id="overlay">
     <h1>ZOM ZOMS</h1>
     <div id="overlay-text">Click to play</div>
-    <p>Arrows / WASD move · mouse aims · hold click to shoot · 1 2 3 swap gun · R restart</p>
+    <p>Arrows / WASD move · mouse aims · hold click to shoot · R reload · kill zombies for gun drops · \` drop odds</p>
   </div>
 </div>
 <script>

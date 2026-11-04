@@ -92,6 +92,35 @@ export class Sfx {
     this.thump(0.1 + power * 0.2, 160, 40, 0.6 + power * 0.3);
   }
 
+  /** Bright two-note chirp when something is collected. */
+  public pickup() {
+    if (!this.ready("pickup", 60)) return;
+    this.tone(0.09, 660, 0.25);
+    this.tone(0.14, 990, 0.22, 0.07);
+  }
+
+  /** Mechanical clack-clack of a magazine swap. */
+  public reload() {
+    if (!this.ready("reload", 120)) return;
+    this.burst(0.05, 2400, 4, 0.3, "bandpass", 1200);
+    this.thump(0.06, 300, 120, 0.25);
+  }
+
+  private tone(dur: number, freq: number, gain: number, delay = 0) {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq, t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(g).connect(this.master!);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  }
+
   public hit() {
     if (!this.ready("hit", 30)) return;
     this.burst(0.07, 900, 3, 0.35, "bandpass", 300);
