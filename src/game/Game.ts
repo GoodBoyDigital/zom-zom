@@ -15,6 +15,7 @@ import { Floor } from "./fx/Floor";
 import { GameTextures } from "./fx/Textures";
 import { Spawner } from "./systems/Spawner";
 import { ZombieSystem } from "./systems/ZombieSystem";
+import { LootSystem } from "./systems/LootSystem";
 import { Hud } from "./ui/Hud";
 
 /**
@@ -33,11 +34,13 @@ export class Game {
   public readonly zombies: ZombieSystem;
   public readonly player: Player;
   public readonly spawner: Spawner;
+  public readonly loot: LootSystem;
   public readonly hud: Hud;
   public readonly sfx = new Sfx();
 
   public weapon: WeaponDef = WEAPONS.rifle;
   public kills = 0;
+  public score = 0;
   public shotsFired = 0;
   public hitsLanded = 0;
   public state: "playing" | "dead" = "playing";
@@ -69,12 +72,14 @@ export class Game {
     this.zombies = new ZombieSystem(this.tex);
     this.player = new Player(this.tex);
     this.spawner = new Spawner(this.zombies);
+    this.loot = new LootSystem(this.tex);
     this.hud = new Hud(this.tex);
 
     this.world.addChild(
       this.floor.view,
       this.fx.under,
       this.zombies.view,
+      this.loot.view,
       this.player.view,
       this.fx.over,
     );
@@ -98,9 +103,11 @@ export class Game {
     this.fx.reset();
     this.zombies.reset();
     this.spawner.reset();
+    this.loot.reset();
     this.hud.reset();
     this.player.reset(ARENA.width / 2, ARENA.height / 2);
     this.kills = 0;
+    this.score = 0;
     this.shotsFired = 0;
     this.hitsLanded = 0;
     this.state = "playing";
@@ -175,6 +182,8 @@ export class Game {
     }
 
     this.zombies.update(dt, this.player);
+    this.loot.update(dt, this.player, this.state === "playing");
+    this.score = this.loot.score;
     this.fx.update(dt);
     input.consumePresses();
   }
@@ -351,6 +360,7 @@ export class Game {
     this.fx.addShake(0.05);
     this.sfx.splat();
     this.zombies.kill(z);
+    this.loot.drop(x, y);
     this.kills++;
   }
 
@@ -407,6 +417,7 @@ export class Game {
       hp: this.player.hp,
       maxHp: this.player.maxHp,
       kills: this.kills,
+      score: this.score,
       alive: this.zombies.count,
       time: this.spawner.time,
       weapon: this.weapon.name,
